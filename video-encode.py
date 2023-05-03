@@ -27,7 +27,7 @@ if __name__ == '__main__':
                         help='directory for blu ray rip to encode')
     parser.add_argument('--target',
                         type=int,
-                        metavar='bitrate',
+                        metavar='BITRATE',
                         default=4000,
                         help='choose a bitrate to target (DEFAULT: 1080p=4000, 2160p=12000)')
     parser.add_argument('--quality',
