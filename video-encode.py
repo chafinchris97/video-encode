@@ -15,6 +15,17 @@
 # dependencies: handbrakecli, ffprobe, ffmpeg, dovi_tool, mkvmerge, mkvpropedit, mkvextract
 
 import argparse
+import subprocess
+
+def verifyFFProbe():
+    print('Verifying ffprobe...')
+    try:
+        subprocess.check_call(['ffprobe', '-h'], 
+                              stdout=subprocess.DEVNULL, 
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('ffprobe not found')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -43,3 +54,5 @@ if __name__ == '__main__':
                         help='choose to auto crop (DEFAULT: no crop)')
     
     arguments = parser.parse_args()
+
+    verifyFFProbe()
