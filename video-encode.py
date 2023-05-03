@@ -16,6 +16,75 @@
 
 import argparse
 import subprocess
+import os
+import json
+from dataclasses import dataclass
+
+@dataclass
+class Subtitle:
+    index: int
+    language: str
+    forced: bool
+    type: str
+
+@dataclass
+class Audio:
+    index: int
+    language: str
+
+
+class FFProbe:
+    def __init__(self, input_file_path):
+        self.file_path = input_file_path
+        if os.path.isfile(self.file_path) == False:
+            raise IOError(f'file does not exist: {self.file_path}')
+        
+        output = subprocess.run([
+            'ffprobe',
+            '-loglevel', 'quiet',
+            '-show_streams',
+            '-show_format', 
+            '-print_format', 'json',
+            self.file_path
+        ], capture_output=True, text=True)
+
+        media_info = json.loads(output.stdout)
+
+        self.height = 0
+        self.duration_in_seconds = 0
+        self.bitrate = 0
+        self.frame_rate = 0
+        self.is_dolby_vision = False
+        self.subtitles = []
+        self.audios = []
+
+        audio_index = 0
+        subtitle_index = 0
+        for stream in media_info.get('streams'):
+            if stream.get('codec_type') == 'video':
+                self.height = int(stream.get('height'))
+                self.frame_rate = stream.get('avg_frame_rate')
+                self.is_dolby_vision = bool(stream.get('side_data_list'))
+            elif stream.get('codec_type') == 'audio':
+                audio_index += 1
+                audio = Audio(
+                    index=audio_index,
+                    language=stream.get('tags').get('language')
+                )
+                self.audios.append(audio)
+            elif stream.get('codec_type') == 'subtitle':
+                subtitle_index += 1
+                subtitle = Subtitle(
+                    index=subtitle_index,
+                    language=stream.get('tags').get('language'),
+                    forced=stream.get('disposition').get('forced') == 1,
+                    type=stream.get('codec_name')
+                )
+                self.subtitles.append(subtitle)
+
+        self.bitrate = media_info.get('format').get('bit_rate')
+        self.duration_in_seconds = media_info.get('format').get('duration')
+
 
 def verifyFFProbe():
     print('Verifying ffprobe...')
