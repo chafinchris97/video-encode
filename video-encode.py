@@ -94,6 +94,16 @@ def verify_ffprobe():
                               stderr=subprocess.DEVNULL)
     except FileNotFoundError:
         raise IOError('ffprobe not found')
+    
+
+def verify_handbrakecli():
+    print('Verifying handbrakecli...')
+    try:
+        subprocess.check_call(['handbrakecli', '-h'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('handbrakecli not found')
 
 
 if __name__ == '__main__':
@@ -125,3 +135,4 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
 
     verify_ffprobe()
+    verify_handbrakecli()
