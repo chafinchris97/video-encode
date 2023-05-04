@@ -86,7 +86,7 @@ class FFProbe:
         self.duration_in_seconds = media_info.get('format').get('duration')
 
 
-def verifyFFProbe():
+def verify_ffprobe():
     print('Verifying ffprobe...')
     try:
         subprocess.check_call(['ffprobe', '-h'], 
@@ -124,4 +124,4 @@ if __name__ == '__main__':
     
     arguments = parser.parse_args()
 
-    verifyFFProbe()
+    verify_ffprobe()
