@@ -277,6 +277,9 @@ if __name__ == '__main__':
     should_crop = arguments.crop
     burn_subtitle_track = arguments.burn_subtitle
 
+    if os.path.isfile(os.path.basename(media_info.file_path)):
+        raise IOError('file output already exists')
+
     if target_bit_rate == 0:
         if media_info.height > 1080:
             target_bit_rate = 12000
