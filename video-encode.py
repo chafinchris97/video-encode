@@ -86,6 +86,69 @@ class FFProbe:
         self.duration_in_seconds = media_info.get('format').get('duration')
 
 
+class Handbrake:
+    def __init__(self):
+        self.input_file = ''
+        self.input_command = []
+        self.output_command = []
+        self.quality_command = []
+        self.crop_command = ['--crop', '0:0:0:0']
+        self.previews_command = ['--previews', '1:0']
+        self.burn_subtitle_command = []
+        self.encoder_command = ['--encoder', 'vt_h265_10bit',
+                                '--encoder-preset', 'quality',
+                                '--encoder-profile', 'auto',
+                                '--encoder-level', 'auto']
+        self.audio_encoder_command = ['--aencoder', 'ac3',
+                                      '--ab', '448',
+                                      '--mixdown', '5point1',
+                                      '--arate', 'auto']
+
+    def input(self, input_file_path):
+        self.input_file = input_file_path
+        # create output path in case output wasn't specified
+        output_file_path = os.path.basename(self.input_file)
+        self.input_command = ['--input', self.input_file]
+        self.output_command = ['--output', output_file_path]
+
+    def output(self, output_file_path):
+        self.output_command = ['--output', output_file_path]
+
+    def quality(self, cq_number):
+        self.quality_command = ['--quality', str(cq_number)]
+
+    def crop(self):
+        self.crop_command = ['--crop-threshold-frames', '3']
+
+    def previews(self, previews_number):
+        self.previews_command = ['--previews', f'{previews_number}:0']
+
+    def burn_subtitle(self, subtitle_track):
+        self.burn_subtitle_command = ['--subtitle', str(subtitle_track), '--subtitle-burned']
+
+    def run(self):
+        if not self.input_command:
+            raise IOError('handbrakecli missing input option')
+        elif not self.quality_command:
+            raise IOError('handbrakecli missing quality option')
+
+        command = ['handbrakecli']
+        command += self.input_command
+        command += self.output_command
+        command += self.previews_command
+        command += self.crop_command
+        command += ['--markers']
+        command += self.encoder_command
+        command += ['--no-comb-detect', '--no-decomb']
+        command += self.quality_command
+        command += self.audio_encoder_command
+        command += self.burn_subtitle_command
+
+        print(f'Encoding command for file: {self.input_file}')
+        print(*command)
+        subprocess.run(command)
+
+
 def verify_ffprobe():
     print('Verifying ffprobe...')
     try:
