@@ -146,7 +146,7 @@ class Handbrake:
 
         print(f'Encoding command for file: {self.input_file}')
         print(*command)
-        subprocess.run(command)
+        #subprocess.run(command)
 
 
 def verify_ffprobe():
@@ -181,7 +181,7 @@ def parse_arguments():
     parser.add_argument('--target',
                         type=int,
                         metavar='BITRATE',
-                        default=4000,
+                        default=0,
                         help='choose a bitrate to target (DEFAULT: 1080p=4000, 2160p=12000)')
     parser.add_argument('--quality',
                         type=int,
@@ -205,8 +205,47 @@ def parse_arguments():
 
     return arguments
 
+
+def find_quality_option(target_bit_rate):
+    # TODO: binary search algorithm for finding optimal cq value
+    return 50
+
 if __name__ == '__main__':
     arguments = parse_arguments()
 
     verify_ffprobe()
     verify_handbrakecli()
+
+    media_info = FFProbe(arguments.file_name)
+    target_bit_rate = arguments.target
+    quality_option = arguments.quality
+    should_crop = arguments.crop
+    burn_subtitle_track = arguments.burn_subtitle
+
+    if target_bit_rate == 0:
+        if media_info.height > 1080:
+            target_bit_rate = 12000
+        else:
+            target_bit_rate = 4000
+
+    if quality_option is None:
+        quality_option = find_quality_option(target_bit_rate)
+
+    encoder = Handbrake()
+    encoder.input(media_info.file_path)
+    encoder.quality(quality_option)
+    if should_crop:
+        encoder.previews(60)
+        encoder.crop()
+    if burn_subtitle_track.isdigit():
+        encoder.burn_subtitle(int(burn_subtitle_track))
+    elif burn_subtitle_track == 'auto':
+        for subtitle in media_info.subtitles:
+            if subtitle.forced:
+                encoder.burn_subtitle(subtitle.index)
+                break
+            elif media_info.audios[0].language != 'eng' and subtitle.language == 'eng':
+                encoder.burn_subtitle(subtitle.index)
+                break
+
+    encoder.run()
