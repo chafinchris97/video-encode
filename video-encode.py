@@ -19,6 +19,7 @@ import subprocess
 import os
 import json
 from dataclasses import dataclass
+import tempfile
 
 @dataclass
 class Subtitle:
@@ -84,8 +85,8 @@ class FFProbe:
                 )
                 self.subtitles.append(subtitle)
 
-        self.bitrate = media_info.get('format').get('bit_rate')
-        self.duration_in_seconds = media_info.get('format').get('duration')
+        self.bitrate = float(media_info.get('format').get('bit_rate'))
+        self.duration_in_seconds = float(media_info.get('format').get('duration'))
 
 
 class Handbrake:
@@ -136,7 +137,7 @@ class Handbrake:
     def burn_subtitle(self, subtitle_track):
         self.burn_subtitle_command = ['--subtitle', str(subtitle_track), '--subtitle-burned']
 
-    def run(self):
+    def run(self, quiet_run=False):
         if not self.input_command:
             raise IOError('handbrakecli missing input option')
         elif not self.quality_command:
@@ -156,9 +157,12 @@ class Handbrake:
         command += self.audio_encoder_command
         command += self.burn_subtitle_command
 
-        print(f'Encoding command for file: {self.input_file}')
-        print(*command)
-        #subprocess.run(command)
+        if quiet_run:
+            subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            print(f'Encoding command for file: {os.path.basename(self.input_file)}')
+            print(*command)
+            subprocess.run(command)
 
 
 def verify_ffprobe():
@@ -218,9 +222,48 @@ def parse_arguments():
     return arguments
 
 
-def find_quality_option(target_bit_rate):
-    # TODO: binary search algorithm for finding optimal cq value
-    return 50
+def find_quality_option(media_info, target_bit_rate):
+    print(f'Finding optimal cq value for {os.path.basename(media_info.file_path)}')
+    temporary_directory = tempfile.TemporaryDirectory()
+    duration = media_info.duration_in_seconds
+    steps = 5
+    low_cq = 30
+    high_cq = 80
+    if media_info.height <= 1080:
+        low_cq = 25
+        high_cq = 75
+    
+    while low_cq <= high_cq:
+        cq = int((low_cq + high_cq) / 2)
+        bit_rate_sum = 0
+        print(f'Trying CQ {cq}...')
+        for sample_index in range(1, steps):
+            sample_file_name = f'{temporary_directory.name}/cq_{cq}_sample_{sample_index}.mkv'
+            start_time_in_seconds = duration * sample_index / (steps + 1)
+            encoder = Handbrake()
+            encoder.input(media_info.file_path)
+            encoder.output(sample_file_name)
+            encoder.start_time(start_time_in_seconds)
+            encoder.stop_at(20)
+            encoder.quality(cq)
+            encoder.run(quiet_run=True)
+
+            sample_media_info = FFProbe(sample_file_name)
+            sample_bit_rate = sample_media_info.bitrate / 1000 + 2000
+            bit_rate_sum += sample_bit_rate
+        
+        bit_rate_mean = bit_rate_sum / steps
+        print(f'Predicted bit rate for CQ {cq} is {bit_rate_mean}')
+        if bit_rate_mean > target_bit_rate + 900:
+            high_cq = cq - 1
+        elif bit_rate_mean < target_bit_rate:
+            low_cq = cq + 1
+        else:
+            break
+
+    print(f'Using CQ {cq} for a predicted bit rate of {bit_rate_mean}')
+    temporary_directory.cleanup()
+    return cq
 
 if __name__ == '__main__':
     arguments = parse_arguments()
@@ -241,7 +284,7 @@ if __name__ == '__main__':
             target_bit_rate = 4000
 
     if quality_option is None:
-        quality_option = find_quality_option(target_bit_rate)
+        quality_option = find_quality_option(media_info, target_bit_rate)
 
     encoder = Handbrake()
     encoder.input(media_info.file_path)
