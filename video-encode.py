@@ -97,6 +97,8 @@ class Handbrake:
         self.crop_command = ['--crop', '0:0:0:0']
         self.previews_command = ['--previews', '1:0']
         self.burn_subtitle_command = []
+        self.start_at_command = []
+        self.stop_at_command = []
         self.encoder_command = ['--encoder', 'vt_h265_10bit',
                                 '--encoder-preset', 'quality',
                                 '--encoder-profile', 'auto',
@@ -115,6 +117,12 @@ class Handbrake:
 
     def output(self, output_file_path):
         self.output_command = ['--output', output_file_path]
+
+    def start_time(self, time_in_seconds):
+        self.start_at_command = ['--start-at', f'seconds:{time_in_seconds}s']
+
+    def stop_at(self, time_in_seconds):
+        self.stop_at_command = ['--stop-at', f'seconds:{time_in_seconds}s']
 
     def quality(self, cq_number):
         self.quality_command = ['--quality', str(cq_number)]
@@ -137,6 +145,8 @@ class Handbrake:
         command = ['handbrakecli']
         command += self.input_command
         command += self.output_command
+        command += self.start_at_command
+        command += self.stop_at_command
         command += self.previews_command
         command += self.crop_command
         command += ['--markers']
