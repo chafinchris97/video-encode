@@ -31,6 +31,7 @@ class Subtitle:
 class Audio:
     index: int
     language: str
+    channels: int
 
 
 class FFProbe:
@@ -69,7 +70,8 @@ class FFProbe:
                 audio_index += 1
                 audio = Audio(
                     index=audio_index,
-                    language=stream.get('tags').get('language')
+                    language=stream.get('tags').get('language'),
+                    channels=stream.get('channels')
                 )
                 self.audios.append(audio)
             elif stream.get('codec_type') == 'subtitle':
