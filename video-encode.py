@@ -169,7 +169,7 @@ def verify_handbrakecli():
         raise IOError('handbrakecli not found')
 
 
-if __name__ == '__main__':
+def parse_arguments():
     parser = argparse.ArgumentParser(
         prog='Video Encode',
         description='Creates high quality encodes in h265 10 bit, using Apple\'s VideoToolBox.'
@@ -185,8 +185,9 @@ if __name__ == '__main__':
                         help='choose a bitrate to target (DEFAULT: 1080p=4000, 2160p=12000)')
     parser.add_argument('--quality',
                         type=int,
+                        choices=range(1,101),
                         help='choose a cq number to use to encode (overrides finding cq)')
-    parser.add_argument('--burn_subtitle',
+    parser.add_argument('--burn-subtitle',
                         type=str,
                         metavar='auto|none|TRACK',
                         default='auto',
@@ -196,6 +197,16 @@ if __name__ == '__main__':
                         help='choose to auto crop (DEFAULT: no crop)')
     
     arguments = parser.parse_args()
+
+    if arguments.burn_subtitle != 'auto' and \
+        arguments.burn_subtitle != 'none' and \
+            arguments.burn_subtitle.isdigit() == False:
+        raise argparse.ArgumentTypeError('Invalid option. Please choose \'none\', \'auto\', or a track number')
+
+    return arguments
+
+if __name__ == '__main__':
+    arguments = parse_arguments()
 
     verify_ffprobe()
     verify_handbrakecli()
