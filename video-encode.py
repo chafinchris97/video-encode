@@ -294,7 +294,7 @@ def find_quality_option(media_info, target_bit_rate):
     temporary_directory = tempfile.TemporaryDirectory()
     duration = media_info.duration_in_seconds
     steps = 5
-    low_cq = 30
+    low_cq = 20
     high_cq = 80
     if media_info.height <= 1080:
         low_cq = 25
