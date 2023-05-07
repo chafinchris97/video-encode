@@ -108,10 +108,7 @@ class Handbrake:
                                 '--encoder-preset', 'quality',
                                 '--encoder-profile', 'auto',
                                 '--encoder-level', 'auto']
-        self.audio_encoder_command = ['--aencoder', 'ac3',
-                                      '--ab', '448',
-                                      '--mixdown', '5point1',
-                                      '--arate', 'auto']
+        self.audio_encoder_command = []
 
     def input(self, input_file_path):
         self.input_file = input_file_path
@@ -141,11 +138,27 @@ class Handbrake:
     def burn_subtitle(self, subtitle_track):
         self.burn_subtitle_command = ['--subtitle', str(subtitle_track), '--subtitle-burned']
 
+    def audio_encoder(self, aencoder):
+        if aencoder == 'ac3':
+            self.audio_encoder_command = ['--aencoder', 'ac3',
+                                      '--ab', '448',
+                                      '--mixdown', '5point1',
+                                      '--arate', 'auto']
+        elif aencoder == 'aac':
+            self.audio_encoder_command = ['--aencoder', 'aac',
+                                      '--ab', '256',
+                                      '--mixdown', 'stereo',
+                                      '--arate', 'auto']
+        else:
+            raise ValueError(f'{aencoder} is an invalid option for audio encoder')
+
     def run(self, quiet_run=False):
         if not self.input_command:
             raise IOError('handbrakecli missing input option')
         elif not self.quality_command:
             raise IOError('handbrakecli missing quality option')
+        elif not self.audio_encoder_command:
+            raise TypeError('handbrakecli missing audio options')
 
         command = ['handbrakecli']
         command += self.input_command
@@ -247,6 +260,10 @@ def find_quality_option(media_info, target_bit_rate):
             encoder = Handbrake()
             encoder.input(media_info.file_path)
             encoder.output(sample_file_name)
+            if media_info.audios[0].channels <= 2:
+                encoder.audio_encoder('aac')
+            else:
+                encoder.audio_encoder('ac3')
             encoder.start_time(start_time_in_seconds)
             encoder.stop_at(20)
             encoder.quality(cq)
@@ -302,6 +319,10 @@ if __name__ == '__main__':
     encoder = Handbrake()
     encoder.input(media_info.file_path)
     encoder.quality(quality_option)
+    if media_info.audios[0].channels <= 2:
+        encoder.audio_encoder('aac')
+    else:
+        encoder.audio_encoder('ac3')
     if should_crop:
         encoder.previews(60)
         encoder.crop()
