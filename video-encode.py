@@ -200,6 +200,56 @@ def verify_handbrakecli():
                               stderr=subprocess.DEVNULL)
     except FileNotFoundError:
         raise IOError('handbrakecli not found')
+    
+
+def verify_ffmpeg():
+    print('Verifying ffmpeg...')
+    try:
+        subprocess.check_call(['ffmpeg', '-version'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('ffmpeg not found')
+    
+
+def verify_dovi_tool():
+    print('Verifying dovi_tool...')
+    try:
+        subprocess.check_call(['dovi_tool', '--version'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('dovi_tool not found')
+    
+
+def verify_mkvmerge():
+    print('Verifying mkvmerge...')
+    try:
+        subprocess.check_call(['mkvmerge', '--version'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('mkvmerge not found')
+    
+
+def verify_mkvextract():
+    print('Verifying mkvextract...')
+    try:
+        subprocess.check_call(['mkvextract', '--version'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('mkvextract not found')
+    
+
+def verify_mkvpropedit():
+    print('Verifying mkvpropedit...')
+    try:
+        subprocess.check_call(['mkvpropedit', '--version'],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise IOError('mkvpropedit not found')
 
 
 def parse_arguments():
@@ -306,6 +356,11 @@ if __name__ == '__main__':
 
     verify_ffprobe()
     verify_handbrakecli()
+    verify_ffmpeg()
+    verify_dovi_tool()
+    verify_mkvmerge()
+    verify_mkvextract()
+    verify_mkvpropedit()
 
     media_info = FFProbe(arguments.file_name)
     target_bit_rate = arguments.target
