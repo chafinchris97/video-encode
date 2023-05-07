@@ -154,9 +154,9 @@ class Handbrake:
 
     def run(self, quiet_run=False):
         if not self.input_command:
-            raise IOError('handbrakecli missing input option')
+            raise TypeError('handbrakecli missing input option')
         elif not self.quality_command:
-            raise IOError('handbrakecli missing quality option')
+            raise TypeError('handbrakecli missing quality option')
         elif not self.audio_encoder_command:
             raise TypeError('handbrakecli missing audio options')
 
