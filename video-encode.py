@@ -177,8 +177,8 @@ class Handbrake:
         if quiet_run:
             subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
-            print(f'Encoding command for file: {os.path.basename(self.input_file)}')
-            print(*command)
+            logger.info(f'Encoding command for file: {os.path.basename(self.input_file)}:')
+            logger.info(' '.join(command))
             subprocess.run(command)
 
 
