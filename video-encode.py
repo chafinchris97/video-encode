@@ -20,6 +20,10 @@ import os
 import json
 from dataclasses import dataclass
 import tempfile
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Subtitle:
@@ -223,7 +227,7 @@ def parse_arguments():
 
 
 def find_quality_option(media_info, target_bit_rate):
-    print(f'Finding optimal cq value for {os.path.basename(media_info.file_path)}')
+    logger.info(f'Finding optimal cq value for {os.path.basename(media_info.file_path)}')
     temporary_directory = tempfile.TemporaryDirectory()
     duration = media_info.duration_in_seconds
     steps = 5
@@ -236,7 +240,7 @@ def find_quality_option(media_info, target_bit_rate):
     while low_cq <= high_cq:
         cq = int((low_cq + high_cq) / 2)
         bit_rate_sum = 0
-        print(f'Trying CQ {cq}...')
+        logger.info(f'Trying CQ {cq}...')
         for sample_index in range(1, steps):
             sample_file_name = f'{temporary_directory.name}/cq_{cq}_sample_{sample_index}.mkv'
             start_time_in_seconds = duration * sample_index / (steps + 1)
@@ -253,7 +257,7 @@ def find_quality_option(media_info, target_bit_rate):
             bit_rate_sum += sample_bit_rate
         
         bit_rate_mean = bit_rate_sum / steps
-        print(f'Predicted bit rate for CQ {cq} is {bit_rate_mean}')
+        logger.info(f'Predicted bit rate for CQ {cq} is {bit_rate_mean}')
         if bit_rate_mean > target_bit_rate + 900:
             high_cq = cq - 1
         elif bit_rate_mean < target_bit_rate:
@@ -261,12 +265,18 @@ def find_quality_option(media_info, target_bit_rate):
         else:
             break
 
-    print(f'Using CQ {cq} for a predicted bit rate of {bit_rate_mean}')
+    logger.info(f'Using CQ {cq} for a predicted bit rate of {bit_rate_mean}')
     temporary_directory.cleanup()
     return cq
 
 if __name__ == '__main__':
     arguments = parse_arguments()
+
+    logging_name = f'{os.path.basename(arguments.file_name)}.log.txt'
+    logging.basicConfig(level=logging.INFO,
+                        format='%(message)s')
+    file_handler = logging.FileHandler(logging_name)
+    logger.addHandler(file_handler)
 
     verify_ffprobe()
     verify_handbrakecli()
