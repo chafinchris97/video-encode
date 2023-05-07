@@ -347,8 +347,9 @@ def find_burn_subtitle_track(subtitles):
 
 if __name__ == '__main__':
     arguments = parse_arguments()
+    output_path = os.path.basename(arguments.file_name)
 
-    logging_name = f'{os.path.basename(arguments.file_name)}.log.txt'
+    logging_name = f'{output_path}.log.txt'
     logging.basicConfig(level=logging.INFO,
                         format='%(message)s')
     file_handler = logging.FileHandler(logging_name)
@@ -368,7 +369,7 @@ if __name__ == '__main__':
     should_crop = arguments.crop
     burn_subtitle_track = 0
 
-    if os.path.isfile(os.path.basename(media_info.file_path)):
+    if os.path.isfile(output_path):
         raise IOError('file output already exists')
 
     if target_bit_rate == 0:
@@ -382,6 +383,7 @@ if __name__ == '__main__':
 
     encoder = Handbrake()
     encoder.input(media_info.file_path)
+    encoder.output(output_path)
     encoder.quality(quality_option)
 
     if media_info.audios[0].channels <= 2:
