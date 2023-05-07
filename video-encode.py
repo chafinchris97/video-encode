@@ -185,7 +185,7 @@ class Handbrake:
 def verify_ffprobe():
     print('Verifying ffprobe...')
     try:
-        subprocess.check_call(['ffprobe', '-h'], 
+        subprocess.check_call(['ffprobe', '-version'], 
                               stdout=subprocess.DEVNULL, 
                               stderr=subprocess.DEVNULL)
     except FileNotFoundError:
@@ -195,7 +195,7 @@ def verify_ffprobe():
 def verify_handbrakecli():
     print('Verifying handbrakecli...')
     try:
-        subprocess.check_call(['handbrakecli', '-h'],
+        subprocess.check_call(['handbrakecli', '--version'],
                               stdout=subprocess.DEVNULL,
                               stderr=subprocess.DEVNULL)
     except FileNotFoundError:
