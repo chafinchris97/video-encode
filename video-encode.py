@@ -21,7 +21,7 @@ import json
 from dataclasses import dataclass
 import tempfile
 import logging
-import sys
+from fractions import Fraction
 
 logger = logging.getLogger(__name__)
 
@@ -345,6 +345,126 @@ def find_burn_subtitle_track(subtitles):
             return subtitle.index
     return 0
 
+
+def inject_dolby_vision(raw_file_path, encoded_file_path, frames_per_second):
+    temporary_directory = tempfile.TemporaryDirectory()
+    rpu_directory = f'{temporary_directory}/RPU.bin'
+    encoded_file_stream_directory = f'{temporary_directory}/com.hevc'
+    injected_file_stream_directory = f'{temporary_directory}/inj.hevc'
+
+    logger.info('Extracting dolby vision metadata')
+    ffpmeg = subprocess.Popen([
+        'ffmpeg',
+        '-loglevel', '-quiet',
+        '-i', raw_file_path,
+        '-c:v', 'copy',
+        '-vbsf', 'hevc_mp4toannexb',
+        '-f', 'hevc',
+        '-'
+    ], stdout=subprocess.PIPE)
+
+    subprocess.run([
+        'dovi_tool',
+        '-m', '2',
+        '--crop',
+        'extract-rpu',
+        '-',
+        '-o', rpu_directory
+    ], stdin=ffpmeg)
+
+    logger.info('extracting encoded video stream')
+    subprocess.run([
+        'mkvextract',
+        encoded_file_path,
+        'tracks', f'0:{encoded_file_stream_directory}'
+    ])
+    logger.info('injecting dolby vision metadata into encoded stream')
+    subprocess.run([
+        'dovi_tool',
+        'inject-rpu',
+        '-i', encoded_file_stream_directory,
+        '--rpu-in', rpu_directory,
+        '-o', injected_file_stream_directory
+    ])
+
+    old_encoded_file = f'{encoded_file_path}.old'
+    os.rename(encoded_file_path, old_encoded_file)
+
+    logger.info('remuxing video file with dolby vision')
+    subprocess.run([
+        'mkvmerge',
+        '--default-duration', f'0:{frames_per_second}fps',
+        injected_file_stream_directory,
+        '-D', old_encoded_file,
+        '-o', encoded_file_path
+    ])
+
+    os.remove(old_encoded_file)
+    temporary_directory.cleanup()
+
+
+def inject_hdr(raw_file_path, encoded_file_path):
+    logger.info('extracting hdr metadata')
+    ffprobe_hdr = subprocess.run([
+        'ffprobe',
+        '-loglevel', 'quiet',
+        '-select_streams', 'v:0',
+        '-show_frames',
+        '-read_intervals', '%+#1',
+        '-show_entries', 'frame=side_data_list',
+        '-print_format', 'json',
+        raw_file_path
+    ], capture_output=True, text=True)
+
+    hdr_info = json.loads(ffprobe_hdr.stdout)
+
+    md = ''
+    cll = ''
+
+    for frame in hdr_info['frames']:
+        for side_data in frame['side_data_list']:
+            if side_data['side_data_type'] == 'Content light level metadata':
+                cll = side_data
+            elif side_data['side_data_type'] == 'Mastering display metadata':
+                md = side_data
+
+    if cll == '' or md == '':
+        return
+    
+    max_content = cll['max_content']
+    max_average = cll['max_average']
+
+    red_x = float(Fraction(md['red_x']))
+    red_y = float(Fraction(md['red_y']))
+    green_x = float(Fraction(md['green_x']))
+    green_y = float(Fraction(md['green_y']))
+    blue_x = float(Fraction(md['blue_x']))
+    blue_y = float(Fraction(md['blue_y']))
+    white_x = float(Fraction(md['white_point_x']))
+    white_y = float(Fraction(md['white_point_y']))
+    max_luminance = float(Fraction(md['max_luminance']))
+    min_luminance = float(Fraction(md['min_luminance']))
+
+    logger.info('injecting hdr metadata into encode stream')
+    subprocess.run([
+        'mkvpropedit',
+        encoded_file_path,
+        '--edit', 'track:v1',
+        '--set', f'max-content-light={max_content}',
+        '--set', f'max-frame-light={max_average}',
+        '--set', f'chromaticity-coordinates-red-x={red_x}',
+        '--set', f'chromaticity-coordinates-red-y={red_y}',
+        '--set', f'chromaticity-coordinates-green-x={green_x}',
+        '--set', f'chromaticity-coordinates-green-y={green_y}',
+        '--set', f'chromaticity-coordinates-blue-x={blue_x}',
+        '--set', f'chromaticity-coordinates-blue-y={blue_y}',
+        '--set', f'white-coordinates-x={white_x}',
+        '--set', f'white-coordinates-y={white_y}',
+        '--set', f'max-luminance={max_luminance}',
+        '--set', f'min-luminance={min_luminance}'
+    ])
+
+
 if __name__ == '__main__':
     arguments = parse_arguments()
     output_path = os.path.basename(arguments.file_name)
@@ -402,3 +522,8 @@ if __name__ == '__main__':
         encoder.burn_subtitle(subtitle_track)
 
     encoder.run()
+
+    output_media_info = FFProbe(output_path)
+    if output_media_info.is_dolby_vision:
+        inject_dolby_vision(media_info.file_path, output_path)
+        inject_hdr(media_info.file_path, output_path)
