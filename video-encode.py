@@ -487,7 +487,7 @@ if __name__ == '__main__':
     target_bit_rate = arguments.target
     quality_option = arguments.quality
     should_crop = arguments.crop
-    burn_subtitle_track = 0
+    burn_subtitle_track = arguments.burn_subtitle
 
     if os.path.isfile(output_path):
         raise IOError('file output already exists')
@@ -516,7 +516,8 @@ if __name__ == '__main__':
         encoder.crop()
 
     if burn_subtitle_track.isdigit():
-        encoder.burn_subtitle(int(burn_subtitle_track))
+        subtitle_track = int(burn_subtitle_track)
+        encoder.burn_subtitle(subtitle_track)
     elif burn_subtitle_track == 'auto':
         subtitle_track = find_burn_subtitle_track(media_info.subtitles)
         encoder.burn_subtitle(subtitle_track)
