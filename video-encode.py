@@ -286,6 +286,15 @@ def find_quality_option(media_info, target_bit_rate):
     temporary_directory.cleanup()
     return cq
 
+
+def find_burn_subtitle_track(subtitles):
+    for subtitle in subtitles:
+        if subtitle.forced:
+            return subtitle.index
+        elif media_info.audios[0].language != 'eng' and subtitle.language == 'eng':
+            return subtitle.index
+    return 0
+
 if __name__ == '__main__':
     arguments = parse_arguments()
 
@@ -302,7 +311,7 @@ if __name__ == '__main__':
     target_bit_rate = arguments.target
     quality_option = arguments.quality
     should_crop = arguments.crop
-    burn_subtitle_track = arguments.burn_subtitle
+    burn_subtitle_track = 0
 
     if os.path.isfile(os.path.basename(media_info.file_path)):
         raise IOError('file output already exists')
@@ -319,22 +328,20 @@ if __name__ == '__main__':
     encoder = Handbrake()
     encoder.input(media_info.file_path)
     encoder.quality(quality_option)
+
     if media_info.audios[0].channels <= 2:
         encoder.audio_encoder('aac')
     else:
         encoder.audio_encoder('ac3')
+
     if should_crop:
         encoder.previews(60)
         encoder.crop()
+
     if burn_subtitle_track.isdigit():
         encoder.burn_subtitle(int(burn_subtitle_track))
     elif burn_subtitle_track == 'auto':
-        for subtitle in media_info.subtitles:
-            if subtitle.forced:
-                encoder.burn_subtitle(subtitle.index)
-                break
-            elif media_info.audios[0].language != 'eng' and subtitle.language == 'eng':
-                encoder.burn_subtitle(subtitle.index)
-                break
+        subtitle_track = find_burn_subtitle_track(media_info.subtitles)
+        encoder.burn_subtitle(subtitle_track)
 
     encoder.run()
