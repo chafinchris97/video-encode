@@ -348,14 +348,14 @@ def find_burn_subtitle_track(subtitles):
 
 def inject_dolby_vision(raw_file_path, encoded_file_path, frames_per_second):
     temporary_directory = tempfile.TemporaryDirectory()
-    rpu_directory = f'{temporary_directory}/RPU.bin'
-    encoded_file_stream_directory = f'{temporary_directory}/com.hevc'
-    injected_file_stream_directory = f'{temporary_directory}/inj.hevc'
+    rpu_directory = f'{temporary_directory.name}/RPU.bin'
+    encoded_file_stream_directory = f'{temporary_directory.name}/com.hevc'
+    injected_file_stream_directory = f'{temporary_directory.name}/inj.hevc'
 
     logger.info('Extracting dolby vision metadata')
     ffpmeg = subprocess.Popen([
         'ffmpeg',
-        '-loglevel', '-quiet',
+        '-loglevel', 'quiet',
         '-i', raw_file_path,
         '-c:v', 'copy',
         '-vbsf', 'hevc_mp4toannexb',
@@ -370,7 +370,7 @@ def inject_dolby_vision(raw_file_path, encoded_file_path, frames_per_second):
         'extract-rpu',
         '-',
         '-o', rpu_directory
-    ], stdin=ffpmeg)
+    ], stdin=ffpmeg.stdout)
 
     logger.info('extracting encoded video stream')
     subprocess.run([
@@ -526,5 +526,5 @@ if __name__ == '__main__':
 
     output_media_info = FFProbe(output_path)
     if output_media_info.is_dolby_vision:
-        inject_dolby_vision(media_info.file_path, output_path)
+        inject_dolby_vision(media_info.file_path, output_path, media_info.frame_rate)
         inject_hdr(media_info.file_path, output_path)
