@@ -467,11 +467,6 @@ def inject_hdr(raw_file_path, encoded_file_path):
 
 if __name__ == '__main__':
     arguments = parse_arguments()
-    media_info = FFProbe(arguments.file_name)
-    print(media_info.is_dolby_vision)
-
-if __name__ == '__mdfgain__':
-    arguments = parse_arguments()
     output_path = os.path.basename(arguments.file_name)
 
     logging_name = f'{output_path}.log.txt'
