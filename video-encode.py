@@ -517,9 +517,9 @@ if __name__ == '__main__':
 
     if burn_subtitle_track.isdigit():
         subtitle_track = int(burn_subtitle_track)
-        encoder.burn_subtitle(subtitle_track)
     elif burn_subtitle_track == 'auto' and media_info.is_dolby_vision == False:
         subtitle_track = find_burn_subtitle_track(media_info.subtitles)
+    if subtitle_track != 0:
         encoder.burn_subtitle(subtitle_track)
 
     encoder.run()
