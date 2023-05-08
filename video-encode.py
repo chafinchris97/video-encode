@@ -70,7 +70,8 @@ class FFProbe:
             if stream.get('codec_type') == 'video':
                 self.height = int(stream.get('height'))
                 self.frame_rate = stream.get('avg_frame_rate')
-                self.is_dolby_vision = bool(stream.get('side_data_list'))
+                if stream.get('side_data_list'):
+                    self.is_dolby_vision = stream.get('side_data_list')[0].get('side_data_type') == 'DOVI configuration record'
             elif stream.get('codec_type') == 'audio':
                 audio_index += 1
                 audio = Audio(
@@ -464,8 +465,12 @@ def inject_hdr(raw_file_path, encoded_file_path):
         '--set', f'min-luminance={min_luminance}'
     ])
 
-
 if __name__ == '__main__':
+    arguments = parse_arguments()
+    media_info = FFProbe(arguments.file_name)
+    print(media_info.is_dolby_vision)
+
+if __name__ == '__mdfgain__':
     arguments = parse_arguments()
     output_path = os.path.basename(arguments.file_name)
 
@@ -525,6 +530,6 @@ if __name__ == '__main__':
     encoder.run()
 
     output_media_info = FFProbe(output_path)
-    if output_media_info.is_dolby_vision:
+    if media_info.is_dolby_vision:
         inject_dolby_vision(media_info.file_path, output_path, media_info.frame_rate)
         inject_hdr(media_info.file_path, output_path)
