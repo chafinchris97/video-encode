@@ -529,3 +529,5 @@ if __name__ == '__main__':
     if media_info.is_dolby_vision:
         inject_dolby_vision(media_info.file_path, output_path, media_info.frame_rate)
         inject_hdr(media_info.file_path, output_path)
+
+    logger.info(f'Actual bitrate for file {output_path}: {output_media_info.bitrate}')
